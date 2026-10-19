@@ -1,9 +1,3 @@
-"""Отправка сообщения пользователю напрямую через Telegram Bot API.
-
-Используется, потому что в версии бота пользователя нет ручки /users/{id}/notify.
-Работает на любой версии. Нужен токен бота (тот же BOT_TOKEN, что у Bedolaga) — в .env.
-Параллельный sendMessage не конфликтует с поллингом самого бота.
-"""
 from __future__ import annotations
 
 import asyncio
@@ -15,7 +9,6 @@ BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 
 
 async def send_message(chat_id: int, html_text: str, button: tuple[str, str] | None = None) -> None:
-    """Отправить сообщение. button=(текст, url) → добавит inline-кнопку-ссылку."""
     if not BOT_TOKEN:
         raise RuntimeError("TELEGRAM_BOT_TOKEN не задан в .env")
 
@@ -30,7 +23,7 @@ async def send_message(chat_id: int, html_text: str, button: tuple[str, str] | N
         body["reply_markup"] = {"inline_keyboard": [[{"text": button[0], "url": button[1]}]]}
 
     last_error: Exception | None = None
-    for attempt in range(3):   # 3 попытки: сетевые сбои к Telegram бывают
+    for attempt in range(3):   
         try:
             async with httpx.AsyncClient(timeout=15) as client:
                 r = await client.post(url, json=body)

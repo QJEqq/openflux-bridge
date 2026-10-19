@@ -3,9 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Orca Cloud — обход</title>
+<title>VPN — обход</title>
 <style>
-  /* ---- палитра (тёплая тёмная + «глиняный» акцент Anthropic). Меняется тут. ---- */
   :root{
     --bg:#17150f; --bg-2:#201d16;
     --ink:#f3efe6; --muted:#b4ad9f;
@@ -25,7 +24,6 @@
     padding:max(24px,env(safe-area-inset-top)) 16px 40px;
     -webkit-font-smoothing:antialiased;
   }
-  /* мягкое тёплое свечение сверху поверх звёзд */
   body::before{
     content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
     background:radial-gradient(120% 70% at 50% -10%, rgba(217,119,87,.22), transparent 60%);
@@ -85,7 +83,6 @@
   <h1>Обход белых списков</h1>
   <p class="sub">Доступно на тарифе <b>FULL</b>. Подключается в пару шагов.</p>
 
-  <!-- Шаг 1: установка приложения (под устройство) -->
   <section class="step" id="step-install">
     <div class="step-head"><span class="num">1</span> Установите приложение</div>
     <div id="install-android" hidden>
@@ -101,7 +98,6 @@
     </div>
   </section>
 
-  <!-- Шаг 2: подключение -->
   <section class="step" id="step-connect">
     <div class="step-head"><span class="num">2</span> Подключите обход</div>
     <button class="btn" id="connect-btn">Подключить</button>
@@ -109,7 +105,6 @@
     <div class="error" id="error" hidden></div>
   </section>
 
-  <!-- Шаг 3: готовая ссылка -->
   <section class="step" id="step-ready" hidden>
     <div class="step-head"><span class="num ok">✓</span> Готово</div>
     <a class="btn" id="deeplink-btn" href="#">Добавить в приложение</a>
@@ -118,11 +113,10 @@
     <p class="hint">Если по кнопке ничего не открылось — скопируйте ссылку и вставьте в приложении вручную.</p>
   </section>
 
-  <p class="foot">ORCA CLOUD</p>
+  <p class="foot">VPN</p>
 </main>
 
 <script>
-  // ---------- звездопад ----------
   (function(){
     const cv = document.getElementById("stars");
     if (!cv || !cv.getContext) return;
@@ -161,7 +155,6 @@
         cx.globalAlpha = s.a * (0.6 + 0.4*Math.sin(s.t));
         cx.beginPath(); cx.arc(s.x, s.y, s.r, 0, 6.28); cx.fill();
       }
-      // редкие «падающие» звёзды
       if (ts - lastShoot > 2600 && Math.random() < 0.5){
         lastShoot = ts;
         shoot.push({ x: Math.random()*W*0.8, y: -10, len: (120+Math.random()*120)*dpr, sp: (7+Math.random()*4)*dpr, life: 1 });
@@ -187,7 +180,6 @@
   const params = new URLSearchParams(location.search);
   const TOKEN = params.get("token") || "";
 
-  // Шаг 1 — определить устройство + подтянуть ссылки из конфига моста
   const ua = navigator.userAgent;
   const isAndroid = /android/i.test(ua);
   const isIOS = /iphone|ipad|ipod/i.test(ua) || (/Mac/.test(ua) && navigator.maxTouchPoints > 1);
@@ -199,12 +191,12 @@
     if (links.ios) ios.href = links.ios;
     else if (isIOS) ios.replaceWith(Object.assign(document.createElement("p"),
       { className:"hint", textContent:"Ссылка для iOS не настроена — напишите в поддержку." }));
-  }).catch(()=>{ /* страница работает и без конфига: Android-кнопка уже ведёт на /download/android */ });
+  }).catch(()=>
 
-  // Шаг 2 — подключить
+
   const connectBtn = document.getElementById("connect-btn");
   connectBtn.addEventListener("click", startProvision);
-  if (!TOKEN){   // без токена подключать нечего — страница открыта не по ссылке из бота
+  if (!TOKEN){   
     connectBtn.disabled = true;
     connectBtn.textContent = "Откройте ссылку из сообщения бота";
   }
