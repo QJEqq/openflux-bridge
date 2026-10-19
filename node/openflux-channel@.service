@@ -1,0 +1,16 @@
+[Unit]
+Description=OpenFlux cups channel %i
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+EnvironmentFile=/root/channels/%i/env
+ExecStart=/root/openflux --role=exit --mode=l4 --transport=cupsonline --url=${ROOMS} --share --cookie-store /root/channels/%i/cookies.json
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

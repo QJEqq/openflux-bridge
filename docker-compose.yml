@@ -1,0 +1,24 @@
+services:
+  bridge:
+    build: .
+    image: openflux-bridge:latest
+    container_name: openflux_bridge
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      # SSH-ключ, которым мост логинится на ноды (только чтение).
+      # Слева — путь на хосте, справа — путь внутри контейнера (его и ставим в SSH_KEY в .env).
+      - /root/.ssh/openflux-bridge:/keys/openflux-bridge:ro
+      # APK для раздачи на /download/android. Заполняется ./fetch-apk.sh.
+      # Монтируем том → обновить приложение можно без пересборки образа.
+      - ./apk:/app/apk:ro
+    networks:
+      - bot_network
+
+# Внешняя сеть стека Bedolaga — в ней живут Caddy и бот.
+# Так Caddy видит мост как http://openflux_bridge:8099,
+# а мост видит бота как http://remnawave_bot:8080.
+networks:
+  bot_network:
+    external: true
+    name: remnawave-bedolaga-telegram-bot_bot_network

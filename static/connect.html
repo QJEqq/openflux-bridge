@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Orca Cloud — обход</title>
+<style>
+  /* ---- палитра (тёплая тёмная + «глиняный» акцент Anthropic). Меняется тут. ---- */
+  :root{
+    --bg:#17150f; --bg-2:#201d16;
+    --ink:#f3efe6; --muted:#b4ad9f;
+    --clay:#d97757; --clay-2:#c05f3f;
+    --line:rgba(243,239,230,.12);
+    --card:rgba(30,27,20,.70);
+    --star:#f0e6d2;
+    --ok:#7bb98a; --err:#e2795f;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; }
+  body{
+    min-height:100vh; min-height:100dvh;
+    font-family:-apple-system,system-ui,"Segoe UI",Roboto,sans-serif;
+    color:var(--ink); background:var(--bg);
+    display:flex; justify-content:center; align-items:flex-start;
+    padding:max(24px,env(safe-area-inset-top)) 16px 40px;
+    -webkit-font-smoothing:antialiased;
+  }
+  /* мягкое тёплое свечение сверху поверх звёзд */
+  body::before{
+    content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background:radial-gradient(120% 70% at 50% -10%, rgba(217,119,87,.22), transparent 60%);
+  }
+  #stars{ position:fixed; inset:0; z-index:-2; width:100%; height:100%; display:block; }
+
+  .card{ width:100%; max-width:430px; }
+  .logo{ display:block; width:88px; height:88px; margin:2px auto 14px;
+         filter:drop-shadow(0 8px 22px rgba(0,0,0,.45)); }
+  h1{ font-size:24px; line-height:1.2; text-align:center; margin:0 0 6px; letter-spacing:-.01em; }
+  .sub{ color:var(--muted); font-size:15px; text-align:center; margin:0 auto 26px; max-width:340px; }
+  .sub b{ color:var(--ink); }
+
+  .step{
+    background:var(--card); border:1px solid var(--line); border-radius:18px;
+    padding:18px 18px 16px; margin-bottom:14px;
+    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  }
+  .step-head{ display:flex; align-items:center; gap:10px; font-size:15px; font-weight:600;
+              color:var(--muted); margin-bottom:12px; }
+  .num{ display:grid; place-items:center; width:24px; height:24px; border-radius:50%;
+        background:rgba(217,119,87,.16); color:var(--clay); font-size:13px; font-weight:700; flex:none; }
+  .num.ok{ background:rgba(123,185,138,.18); color:var(--ok); }
+
+  .btn{
+    display:block; width:100%; text-align:center; text-decoration:none;
+    padding:15px; border-radius:13px; border:none; cursor:pointer;
+    font-size:16px; font-weight:600; font-family:inherit;
+    color:#2a160e; background:var(--clay);
+    transition:transform .06s ease, filter .15s ease;
+  }
+  .btn:hover{ filter:brightness(1.04); }
+  .btn:active{ transform:translateY(1px); }
+  .btn:disabled{ opacity:.55; cursor:default; }
+  .btn.ghost{ background:transparent; color:var(--ink); border:1px solid var(--line); margin-top:10px; }
+  .hint{ color:var(--muted); font-size:13px; line-height:1.5; margin:10px 2px 0; }
+
+  .progress{ display:flex; align-items:center; gap:10px; margin-top:14px; color:var(--muted); font-size:14px; }
+  .spinner{ width:20px; height:20px; border:3px solid rgba(243,239,230,.18); border-top-color:var(--clay);
+            border-radius:50%; animation:spin 1s linear infinite; flex:none; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .error{ margin-top:12px; color:var(--err); font-size:14px; }
+
+  .linkwrap{ margin:12px 0 0; background:rgba(0,0,0,.28); border:1px solid var(--line); border-radius:11px; padding:11px; }
+  .linkwrap code{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px;
+                  color:#9ec1e6; word-break:break-all; }
+  .foot{ text-align:center; color:var(--muted); font-size:12px; margin:22px 0 0; opacity:.7; letter-spacing:.04em; }
+  [hidden]{ display:none !important; }
+  @media (prefers-reduced-motion:reduce){ .spinner{ animation-duration:2s; } }
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+
+<main class="card">
+  <img class="logo" src="/static/logo.png" alt="Orca Cloud" width="88" height="88">
+  <h1>Обход белых списков</h1>
+  <p class="sub">Доступно на тарифе <b>FULL</b>. Подключается в пару шагов.</p>
+
+  <!-- Шаг 1: установка приложения (под устройство) -->
+  <section class="step" id="step-install">
+    <div class="step-head"><span class="num">1</span> Установите приложение</div>
+    <div id="install-android" hidden>
+      <a class="btn" id="apk-link" href="/download/android">Скачать для Android</a>
+      <p class="hint">Если телефон спросит — разрешите установку из этого источника.</p>
+    </div>
+    <div id="install-ios" hidden>
+      <a class="btn" id="ios-link" href="#" target="_blank" rel="noopener">Открыть в TestFlight</a>
+      <p class="hint">Установка через TestFlight — бета-площадку Apple.</p>
+    </div>
+    <div id="install-desktop" hidden>
+      <p class="hint">Откройте эту страницу на телефоне, где будет работать обход.</p>
+    </div>
+  </section>
+
+  <!-- Шаг 2: подключение -->
+  <section class="step" id="step-connect">
+    <div class="step-head"><span class="num">2</span> Подключите обход</div>
+    <button class="btn" id="connect-btn">Подключить</button>
+    <div class="progress" id="progress" hidden><span class="spinner"></span><span id="progress-text">Создаём ваш канал…</span></div>
+    <div class="error" id="error" hidden></div>
+  </section>
+
+  <!-- Шаг 3: готовая ссылка -->
+  <section class="step" id="step-ready" hidden>
+    <div class="step-head"><span class="num ok">✓</span> Готово</div>
+    <a class="btn" id="deeplink-btn" href="#">Добавить в приложение</a>
+    <div class="linkwrap"><code id="link-text"></code></div>
+    <button class="btn ghost" id="copy-btn">Скопировать ссылку</button>
+    <p class="hint">Если по кнопке ничего не открылось — скопируйте ссылку и вставьте в приложении вручную.</p>
+  </section>
+
+  <p class="foot">ORCA CLOUD</p>
+</main>
+
+<script>
+  // ---------- звездопад ----------
+  (function(){
+    const cv = document.getElementById("stars");
+    if (!cv || !cv.getContext) return;
+    const cx = cv.getContext("2d");
+    const col = (getComputedStyle(document.documentElement).getPropertyValue("--star") || "#f0e6d2").trim();
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    let W, H, stars, shoot = [], lastShoot = 0;
+
+    function mk(){ return {
+      x: Math.random()*W, y: Math.random()*H,
+      r: (Math.random()*1.3 + 0.3) * dpr,
+      v: (Math.random()*0.35 + 0.05) * dpr,
+      a: Math.random()*0.5 + 0.35, t: Math.random()*6.28 }; }
+
+    function resize(){
+      W = cv.width = Math.floor(innerWidth*dpr);
+      H = cv.height = Math.floor(innerHeight*dpr);
+      cv.style.width = innerWidth+"px"; cv.style.height = innerHeight+"px";
+      const n = Math.min(170, Math.round(innerWidth*innerHeight/8500));
+      stars = Array.from({length:n}, mk);
+    }
+
+    function drawStatic(){
+      cx.clearRect(0,0,W,H); cx.fillStyle = col;
+      for (const s of stars){ cx.globalAlpha = s.a; cx.beginPath(); cx.arc(s.x,s.y,s.r,0,6.28); cx.fill(); }
+      cx.globalAlpha = 1;
+    }
+
+    function frame(ts){
+      cx.clearRect(0,0,W,H);
+      cx.fillStyle = col;
+      for (const s of stars){
+        s.y += s.v; s.t += 0.03;
+        if (s.y > H + 2){ s.y = -2; s.x = Math.random()*W; }
+        cx.globalAlpha = s.a * (0.6 + 0.4*Math.sin(s.t));
+        cx.beginPath(); cx.arc(s.x, s.y, s.r, 0, 6.28); cx.fill();
+      }
+      // редкие «падающие» звёзды
+      if (ts - lastShoot > 2600 && Math.random() < 0.5){
+        lastShoot = ts;
+        shoot.push({ x: Math.random()*W*0.8, y: -10, len: (120+Math.random()*120)*dpr, sp: (7+Math.random()*4)*dpr, life: 1 });
+      }
+      for (const m of shoot){
+        m.x += m.sp; m.y += m.sp*0.55; m.life -= 0.012;
+        const g = cx.createLinearGradient(m.x, m.y, m.x - m.len, m.y - m.len*0.55);
+        g.addColorStop(0, col); g.addColorStop(1, "transparent");
+        cx.globalAlpha = Math.max(m.life, 0) * 0.8; cx.strokeStyle = g; cx.lineWidth = 2*dpr;
+        cx.beginPath(); cx.moveTo(m.x, m.y); cx.lineTo(m.x - m.len, m.y - m.len*0.55); cx.stroke();
+      }
+      shoot = shoot.filter(m => m.life > 0 && m.y < H+40);
+      cx.globalAlpha = 1;
+      requestAnimationFrame(frame);
+    }
+
+    addEventListener("resize", resize, { passive:true });
+    resize();
+    if (reduce) drawStatic(); else requestAnimationFrame(frame);
+  })();
+
+  // ---------- логика подключения ----------
+  const params = new URLSearchParams(location.search);
+  const TOKEN = params.get("token") || "";
+
+  // Шаг 1 — определить устройство + подтянуть ссылки из конфига моста
+  const ua = navigator.userAgent;
+  const isAndroid = /android/i.test(ua);
+  const isIOS = /iphone|ipad|ipod/i.test(ua) || (/Mac/.test(ua) && navigator.maxTouchPoints > 1);
+  show(isAndroid ? "install-android" : isIOS ? "install-ios" : "install-desktop");
+
+  fetch("/api/links").then(r => r.json()).then(links => {
+    if (links.android) document.getElementById("apk-link").href = links.android;
+    const ios = document.getElementById("ios-link");
+    if (links.ios) ios.href = links.ios;
+    else if (isIOS) ios.replaceWith(Object.assign(document.createElement("p"),
+      { className:"hint", textContent:"Ссылка для iOS не настроена — напишите в поддержку." }));
+  }).catch(()=>{ /* страница работает и без конфига: Android-кнопка уже ведёт на /download/android */ });
+
+  // Шаг 2 — подключить
+  const connectBtn = document.getElementById("connect-btn");
+  connectBtn.addEventListener("click", startProvision);
+  if (!TOKEN){   // без токена подключать нечего — страница открыта не по ссылке из бота
+    connectBtn.disabled = true;
+    connectBtn.textContent = "Откройте ссылку из сообщения бота";
+  }
+
+  async function startProvision(){
+    connectBtn.disabled = true; hide("error"); show("progress");
+    const started = Date.now();
+    try{
+      const r = await fetch(`/api/provision?token=${encodeURIComponent(TOKEN)}`, { method:"POST" });
+      if (!r.ok){ const e = await r.json().catch(() => ({})); return fail(e.detail || "Ссылка недействительна"); }
+      const { job_id } = await r.json();
+      poll(job_id, started);
+    }catch(e){ fail("Не удалось начать. Сервис недоступен?"); }
+  }
+
+  async function poll(jobId, started){
+    try{
+      const r = await fetch(`/api/status?job_id=${encodeURIComponent(jobId)}`);
+      const job = await r.json();
+      const secs = Math.round((Date.now()-started)/1000);
+      document.getElementById("progress-text").textContent = `Создаём ваш канал… ${secs} c`;
+      if (job.status === "ready") return ready(job.link);
+      if (job.status === "error") return fail(job.error || "Ошибка создания канала");
+      setTimeout(() => poll(jobId, started), 2000);
+    }catch(e){ fail("Потеряна связь с сервисом"); }
+  }
+
+  function ready(link){
+    hide("progress"); hide("step-connect");
+    document.getElementById("deeplink-btn").href = link;
+    document.getElementById("link-text").textContent = link;
+    show("step-ready");
+  }
+
+  function fail(msg){
+    hide("progress");
+    const el = document.getElementById("error"); el.textContent = "✕ " + msg; show("error");
+    connectBtn.disabled = false;
+  }
+
+  document.getElementById("copy-btn").addEventListener("click", async () => {
+    const link = document.getElementById("link-text").textContent;
+    try{ await navigator.clipboard.writeText(link); document.getElementById("copy-btn").textContent = "Скопировано ✓"; }
+    catch{ /* старый браузер — пользователь выделит вручную */ }
+  });
+
+  function show(id){ document.getElementById(id).hidden = false; }
+  function hide(id){ document.getElementById(id).hidden = true; }
+</script>
+</body>
+</html>
